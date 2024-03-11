@@ -1,0 +1,1 @@
+XXXPath/test-input/a0970-DSC_0036.png|XXXPath/test-gt/a0970-DSC_0036.png
