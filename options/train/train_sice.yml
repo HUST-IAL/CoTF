@@ -1,0 +1,117 @@
+# general settings
+name: train_sice
+model_type: FTModel2
+scale: 1
+num_gpu: 1 # set num_gpu: 0 for cpu mode
+manual_seed: 1024
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: SICE
+    type: PairedFileListDataset
+    filelist: XXX
+    filename_tmpl: "{}"
+    io_backend:
+      type: disk
+
+    gt_size: 768
+    use_hflip: true
+    use_rot: true
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 4
+    batch_size_per_gpu: 2
+    dataset_enlarge_ratio: 1
+    prefetch_mode: cuda
+    pin_memory: true
+
+  val:
+    name: SICE
+    type: PairedFileListDataset
+    filelist: XXX
+    io_backend:
+      type: disk
+
+# network structures
+network_g:
+  type: CoNet
+  use_sampler: true
+  n_vertices_3d: 17
+  n_vertices_1d: 0
+  use_lab: false
+  input_resolution: 256
+  sampler_input_resolution: 256
+  sampler_output_resolution: 256
+
+# path
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: Adam
+    lr: !!float 4e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: MultiStepLR
+    milestones: [20000, 40000, 60000]
+    gamma: 0.5
+
+  total_iter: 100000
+  warmup_iter: -1 # no warm up
+
+  # losses
+  pixel_opt:
+    type: L1Loss
+    loss_weight: 10.0
+    reduction: mean
+  ssim_opt:
+    type: SSIMLoss
+    loss_weight: 5.0
+  perceptual_opt:
+    type: PerceptualLoss
+    layer_weights:
+      # before relu
+      "conv1_2": 0.1
+      "conv2_2": 0.1
+      "conv3_4": 1
+      "conv4_4": 1
+      "conv5_4": 1
+    vgg_type: vgg19
+    use_input_norm: true
+    perceptual_weight: !!float 0.1
+    style_weight: 0
+    range_norm: false
+    criterion: l1
+
+# validation settings
+val:
+  val_freq: !!float 1e3
+  save_img: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_ssim
+      crop_border: 0
+      test_y_channel: false
+
+# logging settings
+logger:
+  print_freq: 1000
+  save_checkpoint_freq: !!float 1e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
